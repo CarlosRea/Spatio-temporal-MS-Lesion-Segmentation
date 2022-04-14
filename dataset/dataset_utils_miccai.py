@@ -117,7 +117,6 @@ def preprocess_files(root_dir, phase, evaluate, base_path='data'):
                 # ej ../train/1/masks/1_01_flair_pp.nii
                 label_path = f'{patient_label_path}_mask.nii'
                 if os.path.exists(label_path):
-                    print('label_path',label_path)
                     rotated_labels = transform_data(label_path)
                 else:
                     rotated_labels = np.zeros(normalized_data.shape)
