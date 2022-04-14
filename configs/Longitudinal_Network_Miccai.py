@@ -14,7 +14,7 @@ CONFIG = {
     "dataset": {
         "type": "DatasetLongitudinalMiccai",
         "args": {
-            "data_dir": "../train/",
+            "data_dir": "../../input/miccai/miccai",
             "preprocess": True,
             "modalities": ['flair'],
             "val_patients": [4]
