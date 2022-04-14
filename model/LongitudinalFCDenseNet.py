@@ -17,7 +17,8 @@ class LongitudinalFCDenseNet(BaseModel):
         self.siamese = siamese
         if not encoder:
             self.densenet_encoder = FCDenseNetEncoder(
-                in_channels=in_channels * (1 if siamese else 2),
+                # in_channels=in_channels * (1 if siamese else 2),
+                in_channels=in_channels,
                 down_blocks=down_blocks,
                 bottleneck_layers=bottleneck_layers,
                 growth_rate=growth_rate,

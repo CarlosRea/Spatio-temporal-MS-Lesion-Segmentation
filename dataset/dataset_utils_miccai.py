@@ -12,10 +12,6 @@ import scipy.ndimage
 
 class Modalities(Enum):
     FLAIR = 'flair'
-    MPRAGE = 'mprage'
-    PD = 'pd'
-    T2 = 't2'
-    T1W = 't1w'
 
 
 class Phase(Enum):
@@ -51,34 +47,37 @@ def retrieve_data_dir_paths(data_dir, evaluate: Evaluate, phase, preprocess, val
     if preprocess:
         print('Preprocessing files...')
         empty_slices, non_positive_slices = preprocess_files(data_dir, phase, evaluate)
-        print(empty_slices, non_positive_slices)
+        print(len(empty_slices), len(non_positive_slices))
         print('Files preprocessed.')
     if mode == Mode.LONGITUDINAL:
         # lista de slices de cada paciente
         data_dir_paths = retrieve_paths_longitudinal(get_patient_paths(data_dir, evaluate, phase)).items()
-        print('data_dir_paths',data_dir_paths)
+        print('data_dir_paths',len(data_dir_paths))
     else:
         data_dir_paths = retrieve_paths_static(get_patient_paths(data_dir, evaluate, phase)).items()
     data_dir_paths = OrderedDict(sorted(data_dir_paths))
     _data_dir_paths = []
     # lista de patient
     patient_keys = [key for key in data_dir_paths.keys()]
-    if phase == Phase.TRAIN:
+    if phase.value == Phase.TRAIN.value:
         for val_patient in val_patients[::-1]:
             patient_keys.remove(patient_keys[val_patient])
 
         for patient in patient_keys:
             _data_dir_paths += data_dir_paths[patient]
-    elif phase == Phase.VAL:
+        print('_data_dir_paths len train',len(_data_dir_paths))
+    elif phase.value == Phase.VAL.value:
         for val_patient in val_patients:
             _data_dir_paths += data_dir_paths[patient_keys[val_patient]]
+        print('_data_dir_paths len val', len(_data_dir_paths))
     else:
         for patient in patient_keys:
             _data_dir_paths += data_dir_paths[patient]
+        print('_data_dir_paths len otro', len(_data_dir_paths))
 
     if view:
         _data_dir_paths = list(filter(lambda path: int(path.split(os.sep)[-2]) == view.value, _data_dir_paths))
-    if phase == Phase.TRAIN or phase == Phase.VAL:
+    if phase.value == Phase.TRAIN.value or phase.value == Phase.VAL.value:
         _data_dir_paths = retrieve_filtered_data_dir_paths(data_dir, phase, _data_dir_paths, empty_slices, non_positive_slices,
                                                            mode, val_patients, view)
     return _data_dir_paths
@@ -86,30 +85,39 @@ def retrieve_data_dir_paths(data_dir, evaluate: Evaluate, phase, preprocess, val
 
 def preprocess_files(root_dir, phase, evaluate, base_path='data'):
     # filtra los directorios de patients ej /train/*
-    patients = list(filter(lambda name: (evaluate.value if phase == Phase.TEST else Evaluate.TRAINING.value) in name, os.listdir(root_dir)))
+    patients = list(filter(lambda name: (evaluate.value if phase.value == Phase.TEST.value else Evaluate.TRAINING.value) in name, os.listdir(root_dir)))
+    # patients = list(os.listdir(root_dir))
     print('patients',patients)
     empty_slices = []
     non_positive_slices = []
     i_patients = len(patients) + 1
     for patient in patients:
         print(f'Processing patient {patient}')
+        # ej ../train/1/
         patient_path = os.path.join(root_dir, patient)
         if os.path.exists(os.path.join(patient_path, base_path)):
             continue
+        # ej ../train/1/preprocessed/1
         patient_data_path = os.path.join(patient_path, 'preprocessed', patient)
+        # print('patient_data_path',patient_data_path)
+        # ej ../train/1/masks/1
         patient_label_path = os.path.join(patient_path, 'masks', patient)
         # recorre la modalidad
         for modality in list(Modalities):
             mod, value = modality.name, modality.value
             # recorre el timestep
-            for timestep in range(10):
-                data_path = f'{patient_data_path}_0{timestep + 1}_{value}_pp.nii'
+            for timestep in range(2):
+                # ej ../train/1/preprocessed/1_01_flair_pp.nii
+                data_path = f'{patient_data_path}_time0{timestep + 1}_FL.nii.gz'
+                print(data_path)
                 if not os.path.exists(data_path):
                     continue
                 rotated_data = transform_data(data_path)
                 normalized_data = (rotated_data - np.min(rotated_data)) / (np.max(rotated_data) - np.min(rotated_data))
-                label_path = f'{patient_label_path}_0{timestep + 1}_mask1.nii'
+                # ej ../train/1/masks/1_01_flair_pp.nii
+                label_path = f'{patient_label_path}_mask.nii.gz'
                 if os.path.exists(label_path):
+                    print('label_path',label_path)
                     rotated_labels = transform_data(label_path)
                 else:
                     rotated_labels = np.zeros(normalized_data.shape)
@@ -153,9 +161,9 @@ def create_slices(data, label, timestep_path, modality):
         temp_data = np.moveaxis(data, axis, 0)
         temp_labels = np.moveaxis(label, axis, 0)
         for i, (data_slice, label_slice) in enumerate(zip(temp_data, temp_labels)):
-            # ej ../train/1/001
+            # ej ../train/1/data/1/001
             path = os.path.join(timestep_path, str(axis), f'{i:03}')
-            # ej ../train/1/001/flair.h5
+            # ej ../train/1/data/1/001/flair.h5
             full_path = os.path.join(path, f'{modality}.h5')
             if np.sum(data_slice) <= 1e-5:
                 empty_slices.append(path)
@@ -166,6 +174,7 @@ def create_slices(data, label, timestep_path, modality):
             while not os.path.exists(full_path):  # sometimes file is not created correctly => Just redo until it exists
                 if not os.path.exists(path):
                     os.makedirs(path)
+                # añade en cada timestep los slices de la imagen y la mascara
                 with h5py.File(full_path, 'w') as data_file:
                     data_file.create_dataset('data', data=data_slice, dtype='f')
                     data_file.create_dataset('label', data=label_slice, dtype='i')
@@ -196,6 +205,7 @@ def retrieve_paths_longitudinal(patient_paths):
         if not os.path.isdir(patient_path):
             continue
         patient = patient_path.split(os.sep)[-2]
+        print('patient',patient)
         # filtra los pacientes si es directorio
         for timestep_x in sorted(filter(lambda x: os.path.isdir(os.path.join(patient_path, x)), os.listdir(patient_path))):
             x_timestep = defaultdict(list)
@@ -224,9 +234,11 @@ def retrieve_paths_longitudinal(patient_paths):
 
 
 def get_patient_paths(data_dir, evaluate, phase):
+    # ej ../train/
     patient_paths = map(lambda name: os.path.join(name, 'data'),
-                        (filter(lambda name: (evaluate.value if phase == Phase.TEST else Evaluate.TRAINING.value) in name,
+                        (filter(lambda name: (evaluate.value if phase.value == Phase.TEST.value else Evaluate.TRAINING.value) in name,
                                 glob(os.path.join(data_dir, '*')))))
+    # patient_paths = map(lambda name: os.path.join(name, 'data'), glob(os.path.join(data_dir, '*')))
     return patient_paths
 
 
@@ -250,7 +262,7 @@ def retrieve_filtered_data_dir_paths(root_dir, phase, data_dir_paths, empty_slic
         if not non_positive_slices:
             non_positive_slices = pickle.load(open(non_positive_slices_path, 'rb'))
         print(f'Elements in data_dir_paths before filtering empty slices: {len(data_dir_paths)}')
-        if mode == Mode.STATIC:
+        if mode.value == Mode.STATIC.value:
             data_dir_paths = [x for x in data_dir_paths if x not in set(empty_slices + non_positive_slices)]
         else:
             data_dir_paths = [(x_ref, x) for x_ref, x in data_dir_paths if x not in set(empty_slices + non_positive_slices)]

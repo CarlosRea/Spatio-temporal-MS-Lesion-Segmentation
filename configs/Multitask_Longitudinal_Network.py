@@ -14,7 +14,7 @@ CONFIG = {
     "dataset": {
         "type": "DatasetLongitudinal",
         "args": {
-            "data_dir": "../ISBIMSlesionChallenge/",
+            "data_dir": "../miccai/",
             "preprocess": True,
             "modalities": ['flair', 'mprage', 'pd', 't2'],
             "val_patients": [4]

@@ -14,6 +14,7 @@ import model.utils.metric as module_metric
 import trainer as trainer_module
 from dataset.DatasetStatic import Phase
 from dataset.dataset_utils import Views
+from dataset.DatasetLongitudinalMiccai import DatasetLongitudinalMiccai
 from parse_config import ConfigParser, parse_cmd_args
 
 
@@ -46,10 +47,17 @@ def main(config, resume=None):
 
 
 def train(logger, config, loss, metrics, view: Views = None):
-    dataset = config.retrieve_class('dataset', module_dataset)(**config['dataset']['args'], phase=Phase.TRAIN, view=view)
+    # dataset = config.retrieve_class('dataset', module_dataset)(**config['dataset']['args'], phase=Phase.TRAIN, view=view)
+    dataset = DatasetLongitudinalMiccai(**config['dataset']['args'], phase=Phase.TRAIN, view=view)
     data_loader = config.retrieve_class('data_loader', module_data_loader)(**config['data_loader']['args'], dataset=dataset)
+    # dataiter = iter(data_loader)
+    # data = dataiter.next()
+    # time01, time02, label = data.get('Time01')['data'], data.get('Time02')['data'], data.get('Label')['data']
+    # print(time01.shape, time02.shape, label.shape)
+    # print('data',data)
 
-    val_dataset = config.retrieve_class('dataset', module_dataset)(**config['dataset']['args'], phase=Phase.VAL, view=view)
+    # val_dataset = config.retrieve_class('dataset', module_dataset)(**config['dataset']['args'], phase=Phase.VAL, view=view)
+    val_dataset = DatasetLongitudinalMiccai(**config['dataset']['args'], phase=Phase.VAL, view=view)
     valid_data_loader = config.retrieve_class('data_loader', module_data_loader)(**config['data_loader']['args'], dataset=val_dataset)
 
     # build model architecture, then print to console
@@ -71,7 +79,7 @@ def train(logger, config, loss, metrics, view: Views = None):
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')
-    args.add_argument('-c', '--config', default=None, type=str, help='config file path (default: None)')
+    args.add_argument('-c', '--config', default='configs/Longitudinal_Network_Miccai.py', type=str, help='config file path (default: None)')
     args.add_argument('-r', '--resume', default=None, type=str, help='path to latest checkpoint (default: None)')
     args.add_argument('-d', '--device', default=None, type=str, help='indices of GPUs to enable (default: all)')
     args.add_argument('-s', '--single_view', default=False, type=bool, help='Defines if a single is used per plane orientation')

@@ -7,25 +7,25 @@ CONFIG = {
     "arch": {
         "type": "LongitudinalFCDenseNet",
         "args": {
-            "in_channels": 4,
+            "in_channels": 2,
             "siamese": False
         }
     },
     "dataset": {
-        "type": "DatasetLongitudinal",
+        "type": "DatasetLongitudinalMiccai",
         "args": {
-            "data_dir": "../train/",
+            "data_dir": "../miccai/",
             "preprocess": True,
-            "modalities": ['flair', 'mprage', 'pd', 't2'],
+            "modalities": ['flair'],
             "val_patients": [4]
         }
     },
     "data_loader": {
         "type": "Dataloader",
         "args": {
-            "batch_size": 4,
+            "batch_size": 2,
             "shuffle": True,
-            "num_workers": 4,
+            "num_workers": 2,
         }
     },
     "optimizer": {
