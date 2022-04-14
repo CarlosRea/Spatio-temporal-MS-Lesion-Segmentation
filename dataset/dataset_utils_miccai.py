@@ -108,14 +108,14 @@ def preprocess_files(root_dir, phase, evaluate, base_path='data'):
             # recorre el timestep
             for timestep in range(2):
                 # ej ../train/1/preprocessed/1_01_flair_pp.nii
-                data_path = f'{patient_data_path}_time0{timestep + 1}_FL.nii.gz'
+                data_path = f'{patient_data_path}_time0{timestep + 1}_FL.nii'
                 print(data_path)
                 if not os.path.exists(data_path):
                     continue
                 rotated_data = transform_data(data_path)
                 normalized_data = (rotated_data - np.min(rotated_data)) / (np.max(rotated_data) - np.min(rotated_data))
                 # ej ../train/1/masks/1_01_flair_pp.nii
-                label_path = f'{patient_label_path}_mask.nii.gz'
+                label_path = f'{patient_label_path}_mask.nii'
                 if os.path.exists(label_path):
                     print('label_path',label_path)
                     rotated_labels = transform_data(label_path)
